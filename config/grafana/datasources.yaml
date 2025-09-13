@@ -19,3 +19,13 @@ datasources:
     isDefault: true
     version: 1
     uid: tempo
+  
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:9090
+    basicAuth: false
+    editable: false
+    isDefault: false
+    version: 1
+    uid: mimir

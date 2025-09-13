@@ -14,16 +14,21 @@ services:
     container_name: tempo
     restart: always
     command: ["-config.file=/etc/tempo.yaml"]
+    ports:
+      - "4327:4317"   # OTLP gRPC receiver
+      - "4328:4318"   # OTLP HTTP receiver
     volumes:
       - ./config/tempo/tempo.yaml:/etc/tempo.yaml
 
-  # promtail manda informações para o Loki
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    restart: always
+    ports:
+      - "9090:9090"
+    command: ["-config.file=/etc/mimir.yaml"]
     volumes:
-    - ./promtail-config.yaml:/etc/promtail/config.yaml
-    command: ["-config.file=/etc/promtail/config.yaml"]
+      - ./config/mimir/mimir.yaml:/etc/mimir.yaml
     
   grafana:
     image: grafana/grafana:latest
@@ -41,3 +46,29 @@ services:
     depends_on:
       - loki
       - tempo 
+      - mimir
+  
+  otel:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel
+    restart: always
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Health check endpoint
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/otel/otel.yaml:/etc/otelcol/config.yaml
+    depends_on:
+      - loki
+      - tempo
+      - mimir
+      - grafana
+
+  # promtail manda informações para o Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+    - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: ["-config.file=/etc/promtail/config.yaml"]
